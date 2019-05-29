@@ -5,7 +5,6 @@ defmodule GenRMQ.Publisher do
 
   use GenServer
   use AMQP
-  alias Mix.Project
 
   require Logger
 
@@ -128,7 +127,7 @@ defmodule GenRMQ.Publisher do
   @doc false
   @impl GenServer
   def handle_call({:publish, msg, key, metadata}, _from, %{channel: channel, config: config} = state) do
-    metadata = config |> base_metadata() |> merge_metadata(metadata)
+    metadata = base_metadata() |> merge_metadata(metadata)
     result = Basic.publish(channel, config[:exchange], key, msg, metadata)
     {:reply, result, state}
   end
@@ -192,16 +191,16 @@ defmodule GenRMQ.Publisher do
     |> Keyword.merge(headers: headers)
   end
 
-  defp base_metadata(config) do
+  defp base_metadata() do
     [
       timestamp: DateTime.to_unix(DateTime.utc_now(), :milliseconds),
-      app_id: config |> app_id() |> Atom.to_string(),
+      app_id: app_id() |> Atom.to_string(),
       content_type: "application/json"
     ]
   end
 
-  defp app_id(config) do
-    config[:app_id] || Keyword.get(Project.config(), :app)
+  defp app_id() do
+    Application.get_application(__MODULE__)
   end
 
   ##############################################################################
